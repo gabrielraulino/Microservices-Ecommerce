@@ -1,0 +1,19 @@
+services:
+  ms-product-database:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=ms-product
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ms-product-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ms-product-network:
