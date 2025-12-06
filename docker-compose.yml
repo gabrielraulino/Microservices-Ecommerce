@@ -1,0 +1,185 @@
+version: '3.8'
+
+services:
+  # Databases
+  ms-user-database:
+    image: postgres:15-alpine
+    container_name: ms-user-db
+    ports:
+      - "${USER_DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${USER_DB_NAME:-ms-user}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-1234}
+    volumes:
+      - ms-user-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-product-database:
+    image: postgres:15-alpine
+    container_name: ms-product-db
+    ports:
+      - "${PRODUCT_DB_PORT:-5433}:5432"
+    environment:
+      - POSTGRES_DB=${PRODUCT_DB_NAME:-ms-product}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-1234}
+    volumes:
+      - ms-product-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-cart-database:
+    image: postgres:15-alpine
+    container_name: ms-cart-db
+    ports:
+      - "${CART_DB_PORT:-5434}:5432"
+    environment:
+      - POSTGRES_DB=${CART_DB_NAME:-ms-cart}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-1234}
+    volumes:
+      - ms-cart-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-order-database:
+    image: postgres:15-alpine
+    container_name: ms-order-db
+    ports:
+      - "${ORDER_DB_PORT:-5435}:5432"
+    environment:
+      - POSTGRES_DB=${ORDER_DB_NAME:-ms-order}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-1234}
+    volumes:
+      - ms-order-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # User Service
+  user-service:
+    build:
+      context: ./user
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "${USER_SERVICE_PORT:-8081}:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ms-user-database:5432/${USER_DB_NAME:-ms-user}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
+      - SERVER_PORT=${USER_SERVICE_PORT:-8081}
+    depends_on:
+      ms-user-database:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Product Service
+  product-service:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+    container_name: product-service
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-8082}:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ms-product-database:5432/${PRODUCT_DB_NAME:-ms-product}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
+      - SERVER_PORT=${PRODUCT_SERVICE_PORT:-8082}
+      - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
+    depends_on:
+      ms-product-database:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Cart Service
+  cart-service:
+    build:
+      context: ./cart
+      dockerfile: Dockerfile
+    container_name: cart-service
+    ports:
+      - "${CART_SERVICE_PORT:-8083}:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ms-cart-database:5432/${CART_DB_NAME:-ms-cart}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
+      - SERVER_PORT=${CART_SERVICE_PORT:-8083}
+      - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
+      - PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL:-http://product-service:8082}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8084}
+    depends_on:
+      ms-cart-database:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "${ORDER_SERVICE_PORT:-8084}:8084"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ms-order-database:5432/${ORDER_DB_NAME:-ms-order}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
+      - SERVER_PORT=${ORDER_SERVICE_PORT:-8084}
+      - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
+      - PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL:-http://product-service:8082}
+      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8081}
+    depends_on:
+      ms-order-database:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+volumes:
+  ms-user-data:
+  ms-product-data:
+  ms-cart-data:
+  ms-order-data:
+
+networks:
+  microservices-network:
+    driver: bridge
+
