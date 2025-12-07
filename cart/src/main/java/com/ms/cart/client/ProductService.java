@@ -10,7 +10,7 @@ import com.ms.cart.dto.InternalProductDTO;
 
 import org.springframework.http.ResponseEntity;
 
-@FeignClient(name = "product-service", url = "${product-service.url}")
+@FeignClient(name = "product")
 public interface ProductService {
 
     /**

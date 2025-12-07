@@ -78,12 +78,45 @@ services:
       timeout: 5s
       retries: 5
 
+  # Eureka Service Discovery
+  eureka-server:
+    build:
+      context: ./service-discovery
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "${EUREKA_SERVER_PORT:-8761}:8761"
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    hostname: api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=api-gateway
+    depends_on:
+      eureka-server:
+        condition: service_started
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
   # User Service
   user-service:
     build:
       context: ./user
       dockerfile: Dockerfile
     container_name: user-service
+    hostname: user-service
     ports:
       - "${USER_SERVICE_PORT:-8081}:8081"
     environment:
@@ -91,6 +124,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
       - SERVER_PORT=${USER_SERVICE_PORT:-8081}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=user-service
     depends_on:
       ms-user-database:
         condition: service_healthy
@@ -104,6 +139,7 @@ services:
       context: ./product
       dockerfile: Dockerfile
     container_name: product-service
+    hostname: product-service
     ports:
       - "${PRODUCT_SERVICE_PORT:-8082}:8082"
     environment:
@@ -112,6 +148,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
       - SERVER_PORT=${PRODUCT_SERVICE_PORT:-8082}
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=product-service
     depends_on:
       ms-product-database:
         condition: service_healthy
@@ -125,6 +163,7 @@ services:
       context: ./cart
       dockerfile: Dockerfile
     container_name: cart-service
+    hostname: cart-service
     ports:
       - "${CART_SERVICE_PORT:-8083}:8083"
     environment:
@@ -133,8 +172,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
       - SERVER_PORT=${CART_SERVICE_PORT:-8083}
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
-      - PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL:-http://product-service:8082}
-      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL:-http://order-service:8084}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=cart-service
     depends_on:
       ms-cart-database:
         condition: service_healthy
@@ -152,6 +191,7 @@ services:
       context: ./order
       dockerfile: Dockerfile
     container_name: order-service
+    hostname: order-service
     ports:
       - "${ORDER_SERVICE_PORT:-8084}:8084"
     environment:
@@ -160,8 +200,8 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-1234}
       - SERVER_PORT=${ORDER_SERVICE_PORT:-8084}
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
-      - PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL:-http://product-service:8082}
-      - USER_SERVICE_URL=${USER_SERVICE_URL:-http://user-service:8081}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=order-service
     depends_on:
       ms-order-database:
         condition: service_healthy

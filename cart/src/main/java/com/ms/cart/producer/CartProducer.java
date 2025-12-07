@@ -14,15 +14,8 @@ public class CartProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    @Value(value = "${broker.queue.cart.name}")
-    private String checkoutRoutingKey;
-
     @Value(value = "${broker.queue.product.update-stock.name}")
     private String updateStockRoutingKey;
-
-    public void publishCheckoutEvent(@Valid Object checkoutEvent) {
-        rabbitTemplate.convertAndSend(checkoutRoutingKey, checkoutEvent);
-    }
 
     public void publishUpdateStockEvent(@Valid Object updateStockEvent) {
         rabbitTemplate.convertAndSend(updateStockRoutingKey, updateStockEvent);

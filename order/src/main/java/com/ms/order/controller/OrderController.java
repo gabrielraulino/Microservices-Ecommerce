@@ -24,37 +24,6 @@ public class OrderController {
 
 //    private final AuthModuleAPI authModuleAPI;
 
-    @PostMapping("/create")
-    @Operation(summary = "Create a new order")
-    public ResponseEntity<OrderDTO> createOrder(@RequestBody CreateOrderRequest request) {
-        // Convert request to DTO
-        CreateOrderDTO orderData = new CreateOrderDTO(
-                request.userId(),
-                request.items().stream()
-                        .map(item -> new CreateOrderDTO.CreateOrderItemDTO(
-                                item.productId(),
-                                item.quantity()
-                        ))
-                        .toList(),
-                PaymentMethod.valueOf(request.paymentMethod())
-        );
-        
-        OrderDTO order = orderService.createOrder(orderData);
-        return ResponseEntity.ok(order);
-    }
-    
-    // Request DTO for Feign client
-    record CreateOrderRequest(
-            Long userId,
-            List<CreateOrderItemRequest> items,
-            String paymentMethod
-    ) {
-        record CreateOrderItemRequest(
-                Long productId,
-                Integer quantity
-        ) {}
-    }
-
     @GetMapping()
     @Operation(summary = "Get all orders with pagination")
     public List<OrderDTO> findAllOrders(
