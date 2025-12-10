@@ -21,8 +21,7 @@ import java.util.List;
 @Tag(name = "Orders", description = "Order management endpoints")
 public class OrderController {
     private final OrderService orderService;
-
-//    private final AuthModuleAPI authModuleAPI;
+    private final com.ms.order.auth.CurrentUserService currentUserService;
 
     @GetMapping()
     @Operation(summary = "Get all orders with pagination")
@@ -40,15 +39,15 @@ public class OrderController {
 
     @GetMapping("/user")
     @Operation(summary = "Get current user's orders")
-    public List<OrderDTO> getCurrentUserOrders(@RequestParam Long userId){
-//        Long userId = authModuleAPI.getCurrentUserId();
+    public List<OrderDTO> getCurrentUserOrders(){
+        Long userId = currentUserService.getCurrentUserId();
         return orderService.findByUserId(userId);
     }
 
     @PostMapping("/{id}/cancel")
     @Operation(summary = "Cancel order by ID")
-    public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Long id, @RequestParam Long userId) {
-//        Long userId = authModuleAPI.getCurrentUserId();
+    public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Long id) {
+        Long userId = currentUserService.getCurrentUserId();
         OrderDTO order = orderService.cancelOrder(id, userId);
         return ResponseEntity.ok(order);
     }

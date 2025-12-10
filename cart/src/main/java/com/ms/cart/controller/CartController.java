@@ -21,13 +21,12 @@ import java.util.List;
 @Tag(name = "Carts", description = "Shopping cart management endpoints")
 public class CartController {
     private final CartService service;
-
-    // private final AuthModuleAPI authModuleAPI;
+    private final com.ms.cart.auth.CurrentUserService currentUserService;
 
     @PutMapping
     @Operation(summary = "Add or update item in cart")
-    public CartDTO addOrUpdateItem(@RequestBody AddCartItemDTO cartData, @RequestParam Long userId) {
-        // Long userId = authModuleAPI.getCurrentUserId();
+    public CartDTO addOrUpdateItem(@RequestBody AddCartItemDTO cartData) {
+        Long userId = currentUserService.getCurrentUserId();
         return service.addOrUpdateItem(userId, cartData);
     }
 
@@ -41,18 +40,17 @@ public class CartController {
 
     @GetMapping("/user")
     @Operation(summary = "Get current user's cart")
-    public CartDTO getCurrentUserCart(@RequestParam Long userId) {
-        // Long userId = authModuleAPI.getCurrentUserId();
+    public CartDTO getCurrentUserCart() {
+        Long userId = currentUserService.getCurrentUserId();
         return service.getCartUserById(userId);
     }
 
      @PostMapping("/checkout")
      @Operation(summary = "Checkout current user's cart")
      public ResponseEntity<com.ms.cart.dto.OrderDTO> checkout(
-             @RequestParam PaymentMethod paymentMethod,
-             @RequestParam Long userId
+             @RequestParam PaymentMethod paymentMethod
      ) {
-         // Long userId = authModuleAPI.getCurrentUserId();
+         Long userId = currentUserService.getCurrentUserId();
          return service.checkout(userId, paymentMethod);
      }
 

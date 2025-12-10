@@ -126,9 +126,35 @@ services:
       - SERVER_PORT=${USER_SERVICE_PORT:-8081}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
       - HOSTNAME=user-service
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production-min-256-bits-for-security-purposes}
     depends_on:
       ms-user-database:
         condition: service_healthy
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth-service
+    hostname: auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-8085}:8085"
+    environment:
+      - SERVER_PORT=${AUTH_SERVICE_PORT:-8085}
+      - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
+      - HOSTNAME=auth-service
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production-min-256-bits-for-security-purposes}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - ADMIN_KEY=${ADMIN_KEY:-admin-secret-key}
+    depends_on:
+      user-service:
+        condition: service_started
+      eureka-server:
+        condition: service_started
     networks:
       - microservices-network
     restart: unless-stopped
@@ -150,6 +176,7 @@ services:
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
       - HOSTNAME=product-service
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production-min-256-bits-for-security-purposes}
     depends_on:
       ms-product-database:
         condition: service_healthy
@@ -174,6 +201,7 @@ services:
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
       - HOSTNAME=cart-service
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production-min-256-bits-for-security-purposes}
     depends_on:
       ms-cart-database:
         condition: service_healthy
@@ -202,6 +230,7 @@ services:
       - SPRING_RABBITMQ_ADDRESSES=${SPRING_RABBITMQ_ADDRESSES}
       - EUREKA_SERVER_URL=${EUREKA_SERVER_URL:-http://eureka-server:8761/eureka/}
       - HOSTNAME=order-service
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production-min-256-bits-for-security-purposes}
     depends_on:
       ms-order-database:
         condition: service_healthy

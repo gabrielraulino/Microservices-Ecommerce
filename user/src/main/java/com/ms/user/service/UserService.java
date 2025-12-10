@@ -2,6 +2,7 @@ package com.ms.user.service;
 
 import com.ms.user.dto.UserCreateDTO;
 import com.ms.user.dto.UserDTO;
+import com.ms.user.dto.UserWithRoleDTO;
 import com.ms.user.exception.DuplicateResourceException;
 import com.ms.user.exception.ResourceNotFoundException;
 import com.ms.user.model.Role;
@@ -36,10 +37,22 @@ public class UserService {
         if (repository.findByEmail(user.email()).isPresent()) {
             throw new DuplicateResourceException("User already exists");
         }
+        
+        // Determinar role: se não fornecida ou inválida, usa USER como padrão
+        Role role = Role.USER;
+        if (user.role() != null && !user.role().isBlank()) {
+            try {
+                role = Role.valueOf(user.role().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Se role inválida, mantém USER como padrão
+                role = Role.USER;
+            }
+        }
+        
         User newUser = new User(
                 null,
                 user.name(),
-                Role.USER,
+                role,
                 user.email(),
                 passwordEncoder.encode(user.password()),
                 LocalDateTime.now(),
@@ -67,6 +80,24 @@ public class UserService {
     public void deleteUser(Long id) {
         findById(id);
         repository.deleteById(id);
+    }
+
+    public UserDTO findByEmail(String email) {
+        return repository.findByEmail(email)
+                .map(UserDTO::fromEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("User", email));
+    }
+
+    public boolean validateCredentials(String email, String password) {
+        return repository.findByEmail(email)
+                .map(user -> passwordEncoder.matches(password, user.getPassword()))
+                .orElse(false);
+    }
+
+    public UserWithRoleDTO getUserWithRoleByEmail(String email) {
+        return repository.findByEmail(email)
+                .map(UserWithRoleDTO::fromEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("User", email));
     }
 
 }
