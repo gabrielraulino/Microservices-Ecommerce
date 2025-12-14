@@ -1,6 +1,7 @@
 package com.ms.user.config;
 
 import com.ms.user.auth.JwtAuthenticationFilter;
+import com.ms.user.auth.ServiceAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ServiceAuthenticationFilter serviceAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -28,10 +30,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints (only for inter-service communication)
+                        // Public endpoints (Swagger/OpenAPI)
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("POST", "/users/validate-credentials").permitAll() // Para Auth Service
-                        .requestMatchers("GET", "/users/email/{email}").permitAll() // Para Auth Service
+                        
+                        // Service-to-service endpoints (require SERVICE role via X-Service-Secret header)
+                        .requestMatchers("POST", "/users").hasAnyRole("SERVICE", "ADMIN") // Para Auth Service - registro de usuários
+                        .requestMatchers("POST", "/users/validate-credentials").hasAnyRole("SERVICE", "ADMIN") // Para Auth Service - validação de credenciais
+                        .requestMatchers("GET", "/users/email/{email}").hasAnyRole("SERVICE", "ADMIN") // Para Auth Service - buscar por email
+                        .requestMatchers("GET", "users/{id}").hasAnyRole("SERVICE", "ADMIN") // Para Auth Service - buscar por id
                         
                         // User endpoints (USER role can access /me)
                         .requestMatchers("GET", "/users/me").hasAnyRole("USER", "ADMIN")
@@ -43,6 +49,7 @@ public class SecurityConfig {
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(serviceAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
