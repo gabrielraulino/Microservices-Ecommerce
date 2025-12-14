@@ -47,7 +47,7 @@ public class CartController {
 
      @PostMapping("/checkout")
      @Operation(summary = "Checkout current user's cart")
-     public ResponseEntity<com.ms.cart.dto.OrderDTO> checkout(
+     public ResponseEntity<String> checkout(
              @RequestParam PaymentMethod paymentMethod
      ) {
          Long userId = currentUserService.getCurrentUserId();

@@ -1,27 +1,19 @@
 package com.ms.cart.dto;
 
-import com.ms.cart.enums.PaymentMethod;
-
 import java.util.List;
 
 /**
- * Cart checkout event.
- * This event is published when a user completes cart checkout.
- * Following Spring Modulith practices, we use an immutable record to transfer
- * data between Cart and Order modules.
+ * Event published when checkout is initiated.
+ * This event is consumed by OrderService to create an order.
  */
 public record CheckoutEvent(
-        Long cart,
-        Long user,
-        List<CheckoutItem> items,
-        PaymentMethod paymentMethod
+        Long cartId,
+        Long userId,
+        String paymentMethod,
+        List<CheckoutItem> items
 ) {
-    /**
-     * Checkout item representing a product and its quantity.
-     * Contains only essential data to reduce serialized event size.
-     */
     public record CheckoutItem(
-            Long product,
+            Long productId,
             Integer quantity
     ) {}
 }

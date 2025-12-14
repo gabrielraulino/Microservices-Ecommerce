@@ -1,9 +1,7 @@
 package com.ms.cart.service;
 
-import com.ms.cart.client.OrderServiceClient;
 import com.ms.cart.client.ProductService;
 import com.ms.cart.dto.*;
-import com.ms.cart.dto.CreateOrderRequest;
 import com.ms.cart.enums.PaymentMethod;
 import com.ms.cart.exception.*;
 import com.ms.cart.model.Cart;
@@ -14,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import com.ms.cart.dto.CheckoutEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +32,6 @@ public class CartService {
     private final CartRepository repository;
 
     private final ProductService productService;
-
-    private final OrderServiceClient orderServiceClient;
 
     private final CartProducer producer;
 
@@ -148,7 +145,7 @@ public class CartService {
     }
 
     @Transactional
-    public ResponseEntity<OrderDTO> checkout(Long userId, PaymentMethod paymentMethod) {
+    public ResponseEntity<String> checkout(Long userId, PaymentMethod paymentMethod) {
         log.info("Starting checkout for user: {}", userId);
 
         Cart cart = findCartByUser(userId);
@@ -165,39 +162,31 @@ public class CartService {
         productService.validateProductsStock(productQuantitiesList);
         log.info("Stock validated successfully for {} products", productQuantitiesList.size());
 
-        // 2. Create order (synchronous - ensures success)
-        List<CreateOrderRequest.CreateOrderItemRequest> items = cart.getItems().stream()
-                .map(item -> new CreateOrderRequest.CreateOrderItemRequest(
+        // 2. Publish CheckoutEvent (asynchronous - order will be created by OrderService)
+        List<CheckoutEvent.CheckoutItem> checkoutItems = cart.getItems().stream()
+                .map(item -> new CheckoutEvent.CheckoutItem(
                         item.getProductId(),
                         item.getQuantity()
                 ))
                 .toList();
 
-        CreateOrderRequest orderRequest = new CreateOrderRequest(
-                userId,
-                items,
-                paymentMethod.name()
-        );
-
-        OrderDTO order = orderServiceClient.createOrder(orderRequest);
-        log.info("Order created successfully. ID: {}", order.id());
-
-        // 3. Publish event to update stock (asynchronous)
-        UpdateStockEvent stockEvent = new UpdateStockEvent(
+        CheckoutEvent checkoutEvent = new CheckoutEvent(
                 cart.getId(),
                 userId,
-                productQuantities
+                paymentMethod.name(),
+                checkoutItems
         );
-        producer.publishUpdateStockEvent(stockEvent);
-        log.info("UpdateStockEvent published for cart: {}", cart.getId());
 
-        // 4. Clear cart items (only if order was created successfully)
+        producer.publishCheckoutEvent(checkoutEvent);
+        log.info("CheckoutEvent published for cart: {}, user: {}", cart.getId(), userId);
+
+        // 3. Clear cart items (order will be created asynchronously)
         cart.getItems().clear();
         cart.setUpdatedAt(LocalDateTime.now());
         repository.save(cart);
         log.info("Cart cleared for user: {}", userId);
 
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok("Checkout initiated. Order will be created shortly.");
     }
 
     private Cart findCartByUser(Long userId) {
