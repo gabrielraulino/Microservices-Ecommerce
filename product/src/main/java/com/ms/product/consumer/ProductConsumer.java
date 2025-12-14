@@ -2,7 +2,9 @@ package com.ms.product.consumer;
 
 import com.ms.product.dto.OrderCancelledEvent;
 import com.ms.product.dto.ProductQuantity;
+import com.ms.product.dto.StockUpdateFailedEvent;
 import com.ms.product.dto.UpdateStockEvent;
+import com.ms.product.producer.ProductProducer;
 import com.ms.product.service.ProductService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,11 +22,12 @@ import java.util.stream.Collectors;
 public class ProductConsumer {
 
     private final ProductService productService;
+    private final ProductProducer productProducer;
 
     @RabbitListener(queues = "${broker.queue.product.update-stock.name}")
     public void handleUpdateStockEvent(@Payload UpdateStockEvent event) {
-        log.info("Received UpdateStockEvent: cartId={}, userId={}, products={}", 
-                 event.cartId(), event.userId(), event.productQuantities().size());
+        log.info("Received UpdateStockEvent: cartId={}, orderId={}, userId={}, products={}", 
+                 event.cartId(), event.orderId(), event.userId(), event.productQuantities().size());
 
         try {
             // Convert Map to List of ProductQuantity
@@ -35,9 +38,21 @@ public class ProductConsumer {
             // Decrement stock
             productService.decrementProducts(productQuantities);
             
-            log.info("Stock updated successfully for cart: {}", event.cartId());
+            log.info("Stock updated successfully for order: {}", event.orderId());
         } catch (Exception e) {
-            log.error("Error processing UpdateStockEvent for cart: {}", event.cartId(), e);
+            log.error("Error processing UpdateStockEvent for order: {}", event.orderId(), e);
+            
+            // Publish failure event to OrderService for automatic cancellation
+            StockUpdateFailedEvent failureEvent = new StockUpdateFailedEvent(
+                    event.orderId(),
+                    event.userId(),
+                    event.productQuantities(),
+                    e.getMessage()
+            );
+            
+            productProducer.publishStockUpdateFailedEvent(failureEvent);
+            log.info("StockUpdateFailedEvent published for order: {}", event.orderId());
+            
             // Rejeita e não re enfileira para evitar 'loop' infinito
             throw new AmqpRejectAndDontRequeueException("Failed to update stock", e);
         }

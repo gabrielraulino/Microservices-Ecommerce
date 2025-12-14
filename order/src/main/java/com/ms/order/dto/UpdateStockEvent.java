@@ -1,9 +1,9 @@
-package com.ms.product.dto;
+package com.ms.order.dto;
 
 import java.util.Map;
 
 /**
- * Event received to update product stock after order creation.
+ * Event published to ProductService to update stock after order creation.
  */
 public record UpdateStockEvent(
         Long cartId,

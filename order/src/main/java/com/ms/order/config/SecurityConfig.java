@@ -37,7 +37,8 @@ public class SecurityConfig {
                         // Admin endpoints
                         .requestMatchers("GET", "/orders").hasRole("ADMIN")
                         .requestMatchers("GET", "/orders/{id}").hasRole("ADMIN")
-                        
+
+                        .requestMatchers("/orders/**").hasRole("ADMIN")
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )

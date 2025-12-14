@@ -1,21 +1,18 @@
 package com.ms.order.dto;
 
-import com.ms.order.enums.PaymentMethod;
-
 import java.util.List;
 
+/**
+ * Event received from CartService when checkout is initiated.
+ */
 public record CheckoutEvent(
-        Long cart,
-        Long user,
-        List<CheckoutItem> items,
-        PaymentMethod paymentMethod
+        Long cartId,
+        Long userId,
+        String paymentMethod,
+        List<CheckoutItem> items
 ) {
-    /**
-     * Checkout item representing a product and its quantity.
-     * Contains only essential data to reduce serialized event size.
-     */
     public record CheckoutItem(
-            Long product,
+            Long productId,
             Integer quantity
     ) {}
 }

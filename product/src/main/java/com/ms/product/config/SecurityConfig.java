@@ -37,6 +37,8 @@ public class SecurityConfig {
                         .requestMatchers("PUT", "/products/{id}").hasRole("ADMIN")
                         .requestMatchers("DELETE", "/products/{id}").hasRole("ADMIN")
                         .requestMatchers("PATCH", "/products/{id}/stock").hasRole("ADMIN")
+
+                        .requestMatchers("/products/**").hasRole("ADMIN")
                         
                         // All other requests require authentication
                         .anyRequest().authenticated()

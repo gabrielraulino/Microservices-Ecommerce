@@ -1,5 +1,6 @@
 package com.ms.order.service;
 
+import com.ms.order.auth.CurrentUserService;
 import com.ms.order.client.ProductService;
 import com.ms.order.client.UserService;
 import com.ms.order.dto.*;
@@ -38,6 +39,49 @@ public class OrderService {
     private final ProductService productService;
 
     private final OrderProducer orderProducer;
+
+    private final CurrentUserService currentUserService;
+
+    /**
+     * Publishes UpdateStockEvent to ProductService after order creation.
+     */
+    public void publishUpdateStockEvent(UpdateStockEvent event) {
+        orderProducer.publishUpdateStockEvent(event);
+    }
+
+    /**
+     * Publishes OrderCreatedEvent to start order processing workflow.
+     */
+    public void publishOrderCreatedEvent(Long orderId, Long userId) {
+        com.ms.order.dto.OrderCreatedEvent event = new com.ms.order.dto.OrderCreatedEvent(orderId, userId);
+        orderProducer.publishOrderCreatedEvent(event);
+    }
+
+    /**
+     * Handles stock update failure by automatically cancelling the order.
+     * This is called when ProductService fails to update stock.
+     */
+    @Transactional
+    public void handleStockUpdateFailure(StockUpdateFailedEvent event) {
+        log.error("Stock update failed for order: {}. Automatically cancelling order.", event.orderId());
+        
+        try {
+            Order order = findOrderById(event.orderId());
+            
+            // Only cancel if order is still in a cancellable state
+            if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PROCESSING) {
+                order.setStatus(OrderStatus.CANCELLED);
+                order.setUpdatedAt(LocalDateTime.now());
+                repository.save(order);
+                
+                log.info("Order {} automatically cancelled due to stock update failure", event.orderId());
+            } else {
+                log.warn("Order {} cannot be cancelled. Current status: {}", event.orderId(), order.getStatus());
+            }
+        } catch (Exception e) {
+            log.error("Error cancelling order {} after stock update failure", event.orderId(), e);
+        }
+    }
 
 
     public OrderDTO findById(Long id){
@@ -184,61 +228,6 @@ public class OrderService {
 
         return buildOrderDTO(cancelledOrder);
     }
-//
-//    @EventListener
-//    public void onCheckoutEvent(CheckoutEvent event) {
-//        log.info("Received checkout event for user: {}, cart: {}", event.user(), event.cart());
-//
-//            // Create the order
-//            Order order = Order.builder()
-//                    .userId(event.user())
-//                    .status(OrderStatus.PENDING)
-//                    .updatedAt(LocalDateTime.now())
-//                    .createdAt(LocalDateTime.now())
-//                    .paymentMethod(event.paymentMethod())
-//                    .build();
-//
-//            Map<Long, Integer> productQuantities = event.items().stream()
-//                    .collect(java.util.stream.Collectors.toMap(
-//                            CheckoutEvent.CheckoutItem::product,
-//                            CheckoutEvent.CheckoutItem::quantity
-//                    ));
-//
-//            UpdateEvent updateProductEvent = new UpdateEvent(
-//                    event.cart(),
-//                    event.user(),
-//                    productQuantities
-//            );
-//
-//            eventPublisher.publishEvent(updateProductEvent);
-//
-//            // Create order items
-//            List<OrderItem> orderItems = event.items().stream()
-//                    .map(item -> {
-//                        OrderItem orderItem = new OrderItem(
-//                                item.product(),
-//                                item.quantity()
-//                        );
-//                        orderItem.setOrder(order);
-//                        return orderItem;
-//                    })
-//                    .toList();
-//
-//            order.setItems(orderItems);
-//
-//            // Save the order
-//            Order savedOrder = repository.save(order);
-//
-//        OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(
-//                savedOrder.getId()
-//        );
-//
-//        eventPublisher.publishEvent(orderCreatedEvent);
-//
-//            log.info("Order created successfully. ID: {}, User: {}",
-//                    savedOrder.getId(), savedOrder.getUserId());
-//
-//    }
 
     private Order findOrderById(Long id){
         return repository.findById(id)
@@ -247,9 +236,9 @@ public class OrderService {
 
     private void validateOrderOwnership(Order order, Long userId) {
         // Admins can cancel any order
-//        if (authModuleAPI.isAdmin()) {
-//            return;
-//        }
+        if (currentUserService.isAdmin()) {
+            return;
+        }
         
         // Regular users can only cancel their own orders
         if (!order.getUserId().equals(userId)) {

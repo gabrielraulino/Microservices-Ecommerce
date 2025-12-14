@@ -1,8 +1,6 @@
 package com.ms.order.controller;
 
-import com.ms.order.dto.CreateOrderDTO;
 import com.ms.order.dto.OrderDTO;
-import com.ms.order.enums.PaymentMethod;
 import com.ms.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
