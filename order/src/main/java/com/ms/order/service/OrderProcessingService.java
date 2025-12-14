@@ -45,7 +45,7 @@ public class OrderProcessingService {
     }
 
     @Async("orderProcessingExecutor")
-    private void processOrderCreatedAsync(OrderCreatedEvent event) {
+    void processOrderCreatedAsync(OrderCreatedEvent event) {
         // Random delay between 2-10 minutes (120000-600000 ms)
         int delayMinutes = 2 + random.nextInt(9); // 2 to 10 minutes
         int delayMs = delayMinutes * 60 * 1000;
@@ -88,7 +88,7 @@ public class OrderProcessingService {
     }
 
     @Async("orderProcessingExecutor")
-    private void processOrderProcessedAsync(OrderProcessedEvent event) {
+    void processOrderProcessedAsync(OrderProcessedEvent event) {
         // Random delay between 2-10 minutes
         int delayMinutes = 2 + random.nextInt(9);
         int delayMs = delayMinutes * 60 * 1000;
@@ -131,7 +131,7 @@ public class OrderProcessingService {
     }
 
     @Async("orderProcessingExecutor")
-    private void processOrderShippedAsync(OrderShippedEvent event) {
+    void processOrderShippedAsync(OrderShippedEvent event) {
         // Random delay between 2-10 minutes
         int delayMinutes = 2 + random.nextInt(9);
         int delayMs = delayMinutes * 60 * 1000;
@@ -159,7 +159,7 @@ public class OrderProcessingService {
      * Helper method to update order status, checking if order wasn't cancelled.
      */
     @Transactional
-    private void processOrderStatusUpdate(Long orderId, OrderStatus newStatus, 
+    void processOrderStatusUpdate(Long orderId, OrderStatus newStatus,
                                          String statusTransition, int delayMinutes) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
