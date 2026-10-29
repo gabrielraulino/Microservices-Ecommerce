@@ -175,3 +175,33 @@ docker-compose up -d --build [nome-do-serviço]
 - As senhas padrão são apenas para desenvolvimento. Altere em produção!
 - Para acessar o Management UI do CloudAMQP, use o painel do seu provedor (CloudAMQP)
 
+**🔎  Sobre a pesquisa**
+
+Este repositório reflete o conteúdo gerado pelo seguinte artigo: "Uma Análise Comparativa entre Arquitetura Monolítica Modular
+e Microsserviços em Aplicações Web", publicado no VEM 2026/CBSOFT.
+
+https://sol.sbc.org.br/index.php/vem/article/view/46394
+
+Como citar:
+
+ABNT
+
+RAULINO, Gabriel; MARQUES, Allan; BEZERRA, Carla; COUTINHO, Emanuel. Uma Análise Comparativa entre Arquitetura Monolítica Modular e Microsserviços em Aplicações Web. In: WORKSHOP DE VISUALIZAÇÃO, EVOLUÇÃO E MANUTENÇÃO DE SOFTWARE (VEM), 14. , 2026, São Paulo/SP. Anais [...]. Porto Alegre: Sociedade Brasileira de Computação, 2026 . p. 48-54. DOI: https://doi.org/10.5753/vem.2026.32795.
+
+BIBTEX
+```bib
+@inproceedings{vem,
+ author = {Gabriel Raulino and Allan Marques and Carla Bezerra and Emanuel Coutinho},
+ title = { Uma Análise Comparativa entre Arquitetura Monolítica Modular e Microsserviços em Aplicações Web},
+ booktitle = {Anais do XIV Workshop de Visualização, Evolução e Manutenção de Software},
+ location = {São Paulo/SP},
+ year = {2026},
+ keywords = {},
+ issn = {0000-0000},
+ pages = {48--54},
+ publisher = {SBC},
+ address = {Porto Alegre, RS, Brasil},
+ doi = {10.5753/vem.2026.32795},
+ url = {https://sol.sbc.org.br/index.php/vem/article/view/46394}
+}
+```
